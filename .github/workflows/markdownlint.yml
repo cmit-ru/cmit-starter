@@ -17,6 +17,4 @@ jobs:
       - uses: actions/checkout@v7
       - uses: DavidAnson/markdownlint-cli2-action@v24
         with:
-          globs: |
-            **/*.md
-            !skill-andMCPupdater-zvasil/**
+          globs: '**/*.md'
