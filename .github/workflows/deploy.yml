@@ -1,0 +1,87 @@
+# Автодеплой: push в main → CI-гейт → webhook Portainer → пост-деплой health-гейт.
+# Стандарт и настройка (токены, переменные, соглашения compose) — agent_docs/guides/autodeploy.md
+#
+# По умолчанию ИНЕРТЕН: без переменной DEPLOY_ENABLED=true шаги деплоя скипаются,
+# поэтому свежий проект из стартера ничего никуда не отправляет.
+name: Test and Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # [skip ci] в сообщении коммита пропускает и тесты, и деплой (deploy зависит от test).
+    # Использовать для правок, не меняющих образ: доки, agent_docs/**.
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v7
+
+      # TODO(setup): подставить команды проекта и удалить заглушку ниже.
+      #   Python:  actions/setup-python@v6 + pip install -e ".[dev]" + pytest -q
+      #   Node:    actions/setup-node@v4  + npm ci + npm test
+      #   Go:      actions/setup-go@v5    + go test ./...
+      - name: Tests
+        run: |
+          echo "::warning::Команда тестов не настроена — CI-гейт ничего не проверяет."
+          echo "Заполнить job 'test' в .github/workflows/deploy.yml (см. agent_docs/guides/autodeploy.md)."
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test # гейт: красные тесты не доезжают до прода
+    steps:
+      # Webhook ПЕРЕСОБИРАЕТ стек из git. Кнопку «Pull and redeploy» в UI не использовать:
+      # она пуллит образы из реестра и падает на локально собираемых (см. гайд, журнал грабель).
+      - name: Trigger Portainer webhook
+        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+        run: |
+          curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}" \
+            --fail --silent --show-error --max-time 30
+          echo "Webhook triggered"
+
+      - name: Wait for deployment
+        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+        run: sleep 60
+
+      # Пост-деплой гейт: контейнер поднялся. Требует секретов SSH_HOST/SSH_USER/SSH_KEY
+      # и переменных SSH_CHECK_ENABLED=true, HEALTH_CONTAINER=<имя контейнера>.
+      # Без него «деплой прошёл» означает лишь «webhook принят» — проверять придётся руками.
+      - name: Check container health
+        if: ${{ vars.SSH_CHECK_ENABLED == 'true' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            CONTAINER="${{ vars.HEALTH_CONTAINER }}"
+            STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not_found")
+            if [ "$STATUS" != "running" ]; then
+              echo "$CONTAINER not running (status: $STATUS)"
+              exit 1
+            fi
+            echo "$CONTAINER running"
+            # TODO(setup): если у сервиса есть health-эндпоинт — проверить его здесь
+            # (пример: docker exec "$CONTAINER" curl -fsS localhost:8000/healthz)
+
+      # Зачистка старых образов: диск на хосте иначе забивается сборками.
+      # Оставляет 2 свежих и текущий; фильтр по метке compose-проекта.
+      - name: Cleanup old images
+        if: ${{ vars.SSH_CHECK_ENABLED == 'true' && vars.STACK_NAME != '' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            CURRENT=$(docker inspect --format='{{.Image}}' "${{ vars.HEALTH_CONTAINER }}" | sed 's/sha256://')
+            docker images --filter "label=com.docker.compose.project=${{ vars.STACK_NAME }}" \
+              --format "{{.ID}} {{.CreatedAt}}" 2>/dev/null | \
+              sort -k2,3 -r | tail -n +3 | awk '{print $1}' | \
+              while read -r img; do
+                if [ "$img" != "${CURRENT:0:12}" ]; then
+                  docker rmi "$img" 2>/dev/null || true
+                fi
+              done
+            echo "Cleanup done"
