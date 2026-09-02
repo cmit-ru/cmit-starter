@@ -54,10 +54,16 @@ GitHub, включить `DEPLOY_ENABLED` и `SSH_CHECK_ENABLED`. Провери
 ## 5. Project-local skills (если нужны)
 
 - Создать canonical source: `.agents/skills/<name>/SKILL.md`.
-- Создать platform mirrors:
-  - `.claude/skills/<name> -> ../../.agents/skills/<name>`
-  - `.codex/skills/<name> -> ../../.agents/skills/<name>`
-  - `.cursor/skills/<name> -> ../../.agents/skills/<name>`
+- Создать platform mirrors — **копии каталога, не symlink**: `.claude/skills/<name>`,
+  `.codex/skills/<name>`, `.cursor/skills/<name>`. Symlink в репозитории ломает деплой:
+  Portainer такой репозиторий не клонирует (`agent_docs/guides/autodeploy.md`, раздел «Грабли»).
+- Зеркала создавать и обновлять скриптом, а не руками:
+
+  ```bash
+  python3 .agents/skills/starter-upgrade/scripts/sync-skill-mirrors.py          # синхронизировать
+  python3 .agents/skills/starter-upgrade/scripts/sync-skill-mirrors.py --check  # только проверить
+  ```
+
 - Не создавать slash-command файлы; workflow оформлять как skills.
 
 ## 5a. Хуки состояния для Claude Code (необязательно)
