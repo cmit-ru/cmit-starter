@@ -60,6 +60,106 @@ def is_symlink_target_same(a, b):
     return os.path.islink(a) and os.path.islink(b) and os.readlink(a) == os.readlink(b)
 
 
+MIRROR_DIRS = (".claude", ".codex", ".cursor", ".agents")
+
+# Признаки другого фреймворка или старого стартера: второе хранилище состояния.
+FOREIGN_MARKERS = (
+    (".claude/SNAPSHOT.md", "состояние фреймворка alexeykrol v5"),
+    (".claude/BACKLOG.md", "план фреймворка alexeykrol v5"),
+    (".claude/rules/", "правила фреймворка alexeykrol v5"),
+    ("manifest.md", "манифест старого стартера"),
+    ("docs/adr.md", "однофайловый ADR старого стартера"),
+    ("docs/development-history.md", "однофайловая история старого стартера"),
+    ("docs/guides/", "гайды старого стартера"),
+)
+
+
+def ignored_by_git(project, rel):
+    """True/False — игнорирует ли git путь; None — git не ответил."""
+    try:
+        r = subprocess.run(["git", "-C", project, "check-ignore", "-q", rel],
+                           capture_output=True, text=True)
+    except OSError:
+        return None
+    if r.returncode == 0:
+        return True
+    if r.returncode == 1:
+        return False
+    return None  # 128 — не репозиторий или git недоступен
+
+
+def ignored_by_gitignore_text(project, d):
+    """Запасной разбор .gitignore, когда git недоступен."""
+    path = os.path.join(project, ".gitignore")
+    if not os.path.isfile(path):
+        return False
+    dir_blocked = star_blocked = reincluded = False
+    for raw in open(path, encoding="utf-8", errors="replace"):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        neg = line.startswith("!")
+        pat = line.lstrip("!").strip().strip("/")
+        if neg:
+            if pat.startswith(d + "/"):
+                reincluded = True
+        elif pat in (d, d + "/**"):
+            dir_blocked = True
+        elif pat == d + "/*":
+            star_blocked = True
+    return dir_blocked or (star_blocked and not reincluded)
+
+
+def collect_warnings(project, starter):
+    """Грабли, которые всплыли на прогоне по существующим проектам."""
+    out = []
+
+    blocked = []
+    for d in MIRROR_DIRS:
+        by_git = ignored_by_git(project, d + "/skills/handoff")
+        if by_git if by_git is not None else ignored_by_gitignore_text(project, d):
+            blocked.append(d)
+    if blocked:
+        out.append(
+            ".gitignore проекта игнорирует " + ", ".join("`%s/`" % d for d in blocked) +
+            " — зеркала скиллов и хуки не попадут в коммит."
+            "\n    Правило вида `.claude/` закрывает каталог целиком, вложенное им уже не переоткрыть:"
+            "\n    заменить на `.claude/*` и добавить исключения `!.claude/skills/`, `!.claude/hooks/`."
+            "\n    .gitignore — once, править самому нельзя: сказать пользователю."
+        )
+
+    try:
+        names = os.listdir(project)
+    except OSError:
+        names = []
+    if "claude.md" in names:
+        out.append(
+            "в корне есть `claude.md` строчными — дубль `CLAUDE.md`, на case-insensitive ФС конфликт."
+            "\n    Содержимое — указатель: `git mv claude.md CLAUDE.md`; иначе сначала перенести в AGENTS.md."
+        )
+
+    foreign = []
+    for rel, what in FOREIGN_MARKERS:
+        path = os.path.join(project, rel.rstrip("/"))
+        if os.path.isdir(path) if rel.endswith("/") else os.path.isfile(path):
+            foreign.append("`%s` (%s)" % (rel, what))
+    if foreign:
+        out.append(
+            "признаки другого фреймворка или старого стартера: " + ", ".join(foreign) + "."
+            "\n    Второе хранилище состояния, слияние вручную: накатывать поверх, чужое не сливать"
+            "\n    и не удалять; вопрос консолидации — в snapshot «Не проверено» и backlog."
+        )
+
+    tpl = read(os.path.join(starter, "CLAUDE.md"))
+    prj = read(os.path.join(project, "CLAUDE.md"))
+    if prj is not None and tpl is not None and prj.strip() != tpl.strip():
+        out.append(
+            "проектный `CLAUDE.md` не равен шаблонному (`@AGENTS.md`) — содержимое перенести"
+            "\n    в AGENTS.md → «Правила проекта» до замены, построчно проверив, что ничего не потеряно."
+        )
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--project", default=os.getcwd())
@@ -124,6 +224,12 @@ def main():
         n_chg = sum(1 for r in rows if r[2].startswith("ИЗМЕНЁН"))
         n_mix = sum(1 for r in rows if r[0] == "mixed" and r[2] != "OK")
         print(f"\nновых: {n_new} · изменённых: {n_chg} · из них mixed (вручную, по разделам): {n_mix}")
+
+        warns = collect_warnings(project, starter)
+        if warns:
+            print("\n## Предупреждения\n")
+            for w in warns:
+                print("  - " + w)
 
         if diffs:
             print("\n## Diff (проект → стартер)\n")
