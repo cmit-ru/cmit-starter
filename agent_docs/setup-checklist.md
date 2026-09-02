@@ -93,3 +93,5 @@ GitHub, включить `DEPLOY_ENABLED` и `SSH_CHECK_ENABLED`. Провери
 
 - Удалить этот файл (`agent_docs/setup-checklist.md`).
 - Обновить `README.md` под содержание своего проекта.
+- `STARTER_VERSION` и `STARTER_MANIFEST` **оставить**: по ним `/starter-upgrade` потом подтянет
+  улучшения шаблона, не задев проектное.

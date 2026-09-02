@@ -37,6 +37,7 @@
 - `agent_docs/templates/adr.md`
 - `agent_docs/templates/development-history.md`
 
-## Инициализация
+## Инициализация и обновление
 
 - `agent_docs/setup-checklist.md` — чек-лист для нового проекта (удаляется после прохождения).
+- `STARTER_VERSION`, `STARTER_MANIFEST` — версия шаблона и граница «шаблон / проект». Обновлять стартер в проекте — скилл `/starter-upgrade`.
