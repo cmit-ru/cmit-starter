@@ -58,18 +58,24 @@ GitHub, включить `DEPLOY_ENABLED` и `SSH_CHECK_ENABLED`. Провери
   - `.cursor/skills/<name> -> ../../.agents/skills/<name>`
 - Не создавать slash-command файлы; workflow оформлять как skills.
 
-## 5a. Напоминание о сохранении состояния (необязательно)
+## 5a. Хуки состояния для Claude Code (необязательно)
 
-В `.claude/hooks/handoff-nudge.sh` лежит готовый Stop-хук для Claude Code: один раз за
-сессию, когда контекст переваливает порог, он предлагает выполнить `/handoff`.
-По умолчанию **не подключён** — хук исполняет код на каждом ходу, поэтому включается
-осознанно, а не приезжает из шаблона молча.
+В `.claude/hooks/` лежат два готовых хука. По умолчанию **не подключены** — хук исполняет код
+в каждой сессии, поэтому включается осознанно, а не приезжает из шаблона молча.
+
+- `state-freshness.sh` (SessionStart) — сверяет дату `agent_docs/snapshot.md` с последним коммитом
+  в код и, если состояние устарело, говорит об этом агенту одной строкой. Только читает.
+- `handoff-nudge.sh` (Stop) — один раз за сессию, когда контекст переваливает порог, предлагает
+  выполнить `/handoff`.
 
 Включить — добавить в `.claude/settings.json` проекта:
 
 ```json
 {
   "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/state-freshness.sh", "timeout": 10 } ] }
+    ],
     "Stop": [
       { "hooks": [ { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/handoff-nudge.sh", "timeout": 5 } ] }
     ]
@@ -77,11 +83,11 @@ GitHub, включить `DEPLOY_ENABLED` и `SSH_CHECK_ENABLED`. Провери
 }
 ```
 
-Порог задаётся переменной `CLAUDE_HANDOFF_NUDGE_TOKENS` (по умолчанию 150000).
-Проверить, что хук подхватился, — командой `/hooks`. Подробности и обоснование —
+Пороги: `STARTER_SNAPSHOT_STALE_DAYS` (по умолчанию 7) и `CLAUDE_HANDOFF_NUDGE_TOKENS`
+(по умолчанию 150000). Проверить, что хуки подхватились, — командой `/hooks`. Обоснование —
 `agent_docs/guides/context-management.md`.
 
-Не нужен — удалить `.claude/hooks/handoff-nudge.sh`.
+Не нужны — удалить `.claude/hooks/`.
 
 ## 6. Очистить шаблон
 
