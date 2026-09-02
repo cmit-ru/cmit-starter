@@ -74,6 +74,75 @@ FOREIGN_MARKERS = (
 )
 
 
+SKIP_WALK_DIRS = {".git", "node_modules", "venv", ".venv", "__pycache__", "dist", "build"}
+
+
+def project_symlinks(project, limit=15):
+    """Symlink среди файлов проекта: сначала спросить git, иначе обойти дерево."""
+    try:
+        r = subprocess.run(["git", "-C", project, "ls-files", "-s"],
+                           capture_output=True, text=True)
+    except OSError:
+        r = None
+    if r is not None and r.returncode == 0:
+        found = sorted(ln.split("\t", 1)[1] for ln in r.stdout.splitlines()
+                       if ln.startswith("120000 ") and "\t" in ln)
+    else:
+        found = []
+        for d, dirs, files in os.walk(project):
+            dirs[:] = [x for x in dirs if x not in SKIP_WALK_DIRS]
+            for n in dirs + files:
+                path = os.path.join(d, n)
+                if os.path.islink(path):
+                    found.append(os.path.relpath(path, project))
+        found = sorted(set(found))
+    return found[:limit], len(found)
+
+
+def skill_tree(root):
+    """Содержимое каталога скилла: относительный путь → байты."""
+    out = {}
+    for d, dirs, files in os.walk(root):
+        dirs[:] = [x for x in dirs if x != "__pycache__"]
+        for f in files:
+            if f.endswith((".pyc", ".pyo")):
+                continue
+            path = os.path.join(d, f)
+            try:
+                with open(path, "rb") as fh:
+                    out[os.path.relpath(path, root)] = fh.read()
+            except OSError:
+                out[os.path.relpath(path, root)] = None
+    return out
+
+
+def stale_skill_mirrors(project):
+    """Зеркала скиллов, которые остались symlink или разошлись с .agents/skills."""
+    src_root = os.path.join(project, ".agents", "skills")
+    if not os.path.isdir(src_root):
+        return []
+    bad = []
+    for name in sorted(os.listdir(src_root)):
+        src = os.path.join(src_root, name)
+        if name.startswith(".") or not os.path.isdir(src):
+            continue
+        src_tree = None
+        for root in (".claude", ".codex", ".cursor"):
+            rel = "%s/skills/%s" % (root, name)
+            dst = os.path.join(project, root, "skills", name)
+            if os.path.islink(dst):
+                bad.append("`%s` (symlink)" % rel)
+                continue
+            if not os.path.isdir(dst):
+                bad.append("`%s` (нет)" % rel)
+                continue
+            if src_tree is None:
+                src_tree = skill_tree(src)
+            if skill_tree(dst) != src_tree:
+                bad.append("`%s` (расходится)" % rel)
+    return bad
+
+
 def ignored_by_git(project, rel):
     """True/False — игнорирует ли git путь; None — git не ответил."""
     try:
@@ -113,6 +182,24 @@ def ignored_by_gitignore_text(project, d):
 def collect_warnings(project, starter):
     """Грабли, которые всплыли на прогоне по существующим проектам."""
     out = []
+
+    links, n_links = project_symlinks(project)
+    if links:
+        more = "" if n_links <= len(links) else " и ещё %d" % (n_links - len(links))
+        out.append(
+            "в репозитории есть symlink (%d): " % n_links + ", ".join("`%s`" % x for x in links) + more + "."
+            "\n    Portainer клонирует git-стеки через go-git с NoSymlinkFS и такой репозиторий не клонирует:"
+            "\n    деплой падает, в /data/compose/<id> остаётся .git и все следующие вебхуки тоже падают."
+            "\n    Заменить копиями каталогов (зеркала скиллов — sync-skill-mirrors.py)."
+        )
+
+    stale = stale_skill_mirrors(project)
+    if stale:
+        out.append(
+            "зеркала скиллов расходятся с `.agents/skills`: " + ", ".join(stale) + "."
+            "\n    Зеркала — копии, а не symlink, поэтому их надо пересоздавать после правки скилла:"
+            "\n    python3 .agents/skills/starter-upgrade/scripts/sync-skill-mirrors.py"
+        )
 
     blocked = []
     for d in MIRROR_DIRS:
