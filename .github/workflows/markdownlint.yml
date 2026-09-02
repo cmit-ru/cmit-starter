@@ -1,11 +1,27 @@
 name: markdownlint
 
+# Линтуются только документы стартера: AGENTS.md, agent_docs/, .agents/.
+# Не '**/*.md' — в существующих проектах старые заметки, README зависимостей и venv
+# в репозитории дают сотни замечаний и красный CI на первом же push.
+# README.md — проектный файл, тоже не линтуется.
+# Добавлять сюда свои пути можно: файл once, проект правит его под себя.
+
 on:
   pull_request:
-    paths: ['**.md', '.github/workflows/markdownlint.yml']
+    paths:
+      - 'AGENTS.md'
+      - 'agent_docs/**/*.md'
+      - '.agents/**/*.md'
+      - '.markdownlint.json'
+      - '.github/workflows/markdownlint.yml'
   push:
-    branches: [main]
-    paths: ['**.md', '.github/workflows/markdownlint.yml']
+    branches: [main, master]
+    paths:
+      - 'AGENTS.md'
+      - 'agent_docs/**/*.md'
+      - '.agents/**/*.md'
+      - '.markdownlint.json'
+      - '.github/workflows/markdownlint.yml'
 
 permissions:
   contents: read
@@ -17,4 +33,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: DavidAnson/markdownlint-cli2-action@v24
         with:
-          globs: '**/*.md'
+          globs: |
+            AGENTS.md
+            agent_docs/**/*.md
+            .agents/**/*.md
