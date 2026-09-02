@@ -25,6 +25,8 @@
 - `agent_docs/guides/autodeploy.md` — **стандарт автодеплоя** (push в main → CI-гейт → webhook Portainer → health-гейт): соглашения compose/стека, что настраивается автоматически (gh, Portainer API-токен), что руками. Читать при подключении деплоя и правке `docker-compose*.yml`.
 - `agent_docs/guides/operations.md` — **операции**: запуск, тесты, деплой, секреты, доступ к проду, журнал инфраструктурных грабель. Читать перед запуском/деплоем/отладкой окружения; пополнять после каждой разгаданной инфра-проблемы.
 - `agent_docs/guides/environment-setup.md` — настройка окружения; применять при инициализации проекта.
+- `agent_docs/guides/context-management.md` — **управление контекстом сессии**: когда `/clear`,
+  когда `/compact`, что записать перед сбросом. Читать, когда сессия разрослась или задача закрыта.
 - `agent_docs/guides/logging.md` — логирование скриптов/интеграций.
 - `agent_docs/guides/atomic-documents.md` — правила атомарных событийных документов.
 - `agent_docs/guides/archiving-and-temp.md` — архивация и временные файлы.
