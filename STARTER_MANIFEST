@@ -43,6 +43,7 @@ template: agent_docs/guides/context-management.md
 template: agent_docs/guides/dod.md
 template: agent_docs/guides/environment-setup.md
 template: agent_docs/guides/logging.md
+template: agent_docs/guides/page-audits.md
 
 once: agent_docs/setup-checklist.md
 once: agent_docs/snapshot.md

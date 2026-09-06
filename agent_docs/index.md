@@ -28,6 +28,9 @@
 - `agent_docs/guides/context-management.md` — **управление контекстом сессии**: когда `/clear`,
   когда `/compact`, что записать перед сбросом. Читать, когда сессия разрослась или задача закрыта.
 - `agent_docs/guides/logging.md` — логирование скриптов/интеграций.
+- `agent_docs/guides/page-audits.md` — **замер публичных страниц** (скорость, SEO, доступность):
+  PageSpeed Insights вместо локального Chrome, W3C Nu, браузер через MCP `playwright`.
+  Читать перед любым замером страницы.
 - `agent_docs/guides/atomic-documents.md` — правила атомарных событийных документов.
 - `agent_docs/guides/archiving-and-temp.md` — архивация и временные файлы.
 
