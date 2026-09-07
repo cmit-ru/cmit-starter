@@ -18,6 +18,7 @@
 
 - `agent_docs/snapshot.md` — текущая точка работы.
 - `agent_docs/backlog.md` — план: Next / Soon / Later / Won't do.
+- `agent_docs/backlog-closed.md` — закрытые пункты бэклога с доказательством; при старте не читать, искать по номеру.
 
 ## Правила и гайды
 

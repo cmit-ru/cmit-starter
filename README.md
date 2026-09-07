@@ -20,6 +20,6 @@
 - `AGENTS.md` — правила работы агента над проектом; единый источник для всех AI-инструментов.
 - `agent_docs/index.md` — карта документов.
 - `agent_docs/invariants.md` — что не должно произойти с продуктом; нарушение = баг.
-- `agent_docs/snapshot.md` + `agent_docs/backlog.md` — состояние: читать при старте сессии, обновлять при завершении.
+- `agent_docs/snapshot.md` + `agent_docs/backlog.md` — состояние: читать при старте сессии, обновлять при завершении; не длиннее 300 строк каждый (CI проверяет), закрытое — в `agent_docs/backlog-closed.md`.
 - `agent_docs/adr/`, `agent_docs/development-history/` — атомарные журналы решений и итераций.
 - `.agents/skills/` — canonical source проектных skills, зеркала в `.claude/`, `.codex/`, `.cursor/`.

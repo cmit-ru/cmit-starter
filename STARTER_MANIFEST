@@ -48,6 +48,7 @@ template: agent_docs/guides/page-audits.md
 once: agent_docs/setup-checklist.md
 once: agent_docs/snapshot.md
 once: agent_docs/backlog.md
+once: agent_docs/backlog-closed.md
 once: agent_docs/architecture.md
 once: agent_docs/invariants.md
 once: agent_docs/glossary.md

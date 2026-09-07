@@ -37,3 +37,24 @@ jobs:
             AGENTS.md
             agent_docs/**/*.md
             .agents/**/*.md
+
+  # Файлы состояния должны влезать в контекст агента целиком, иначе агент читает шапку
+  # и дописывает, а не чистит (cad, 07.09.2026: snapshot.md дорос до 318 КБ, backlog.md — до 322 КБ,
+  # правило «чистить, а не дописывать» стояло в трёх местах и не сработало ни разу).
+  # Правила ужатия — в шапке каждого файла; закрытые пункты бэклога — в backlog-closed.md.
+  state-size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: snapshot.md и backlog.md не длиннее 300 строк
+        run: |
+          fail=0
+          for f in agent_docs/snapshot.md agent_docs/backlog.md; do
+            [ -f "$f" ] || continue
+            n=$(wc -l < "$f")
+            if [ "$n" -gt 300 ]; then
+              echo "::error file=$f::$f — $n строк при потолке 300: чистить, а не дописывать (правила в шапке файла)"
+              fail=1
+            fi
+          done
+          exit $fail
