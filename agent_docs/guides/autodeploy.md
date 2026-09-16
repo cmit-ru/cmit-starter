@@ -55,10 +55,19 @@ gh secret set PORTAINER_WEBHOOK_URL --repo <owner>/<repo> --body "https://<porta
 # Переменные: в старом gh нет `gh variable` — через API:
 gh api -X POST repos/<owner>/<repo>/actions/variables -f name=DEPLOY_ENABLED -f value=true
 gh api repos/<owner>/<repo>/actions/variables --jq '.variables[] | "\(.name)=\(.value)"'   # проверка
+gh api -X PATCH repos/<owner>/<repo>/actions/variables/DEPLOY_ENABLED \
+  -f name=DEPLOY_ENABLED -f value=true                                  # переключить уже созданную
+# Многострочный секрет (приватный ключ) — только перенаправлением stdin:
+gh secret set SSH_KEY --repo <owner>/<repo> < ~/.ssh/<key>
 ```
 
-> Грабля: `gh secret set X --body -` записывает **литерал `-`**, а не stdin. Передавать значение
-> строкой (`--body "..."`) или файлом (`--body-file`), затем проверять реальным вызовом.
+> Грабля: `gh secret set X --body -` записывает **литерал `-`**, а не stdin, а `--body-file`
+> в gh 2.4.0 (версия в dev-контейнере) ещё нет. Однострочное значение передавать как
+> `--body "..."`, многострочное — перенаправлением `< файл`; затем проверять реальным вызовом.
+
+> Грабля: в gh 2.4.0 у `gh run view` нет полей `--json jobs` и у `gh repo view` нет
+> `--json visibility`. Состояние job'ов смотреть через
+> `gh api repos/<owner>/<repo>/actions/runs/<id>/jobs`.
 
 ### 2. Portainer (агент может сам — нужен API-токен)
 
