@@ -13,6 +13,7 @@
 - `agent_docs/invariants.md` — жёсткие правила продукта (нарушение = баг); сверяться при изменениях данных, безопасности, API.
 - `agent_docs/adr/` — атомарный журнал значимых решений (по файлу на решение). Правила: `agent_docs/adr/README.md`.
 - `agent_docs/development-history/` — атомарный журнал итераций (по файлу на итерацию). Правила: `agent_docs/development-history/README.md`.
+- `agent_docs/specs/` — ТЗ задач (по файлу на задачу): требования и критерии приёмки, согласованные до кода. Правила: `agent_docs/specs/README.md`; порядок работы — скилл `/spec`.
 
 ## Состояние (читать при старте сессии, обновлять при завершении)
 
@@ -40,6 +41,7 @@
 - `agent_docs/templates/architecture.md`
 - `agent_docs/templates/adr.md`
 - `agent_docs/templates/development-history.md`
+- `agent_docs/templates/spec.md`
 
 ## Инициализация и обновление
 

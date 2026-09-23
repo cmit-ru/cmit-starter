@@ -8,6 +8,7 @@
 
 - `agent_docs/development-history/` — итерации разработки;
 - `agent_docs/adr/` — значимые решения;
+- `agent_docs/specs/` — ТЗ задач (скилл `/spec`);
 - `agent_docs/reports/` — отчёты задач, если появятся;
 - `agent_docs/audits/` — аудиты и ревью, если появятся;
 - `agent_docs/investigations/` — расследования багов и research notes, если появятся.
