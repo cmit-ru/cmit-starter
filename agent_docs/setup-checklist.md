@@ -68,13 +68,16 @@ GitHub, включить `DEPLOY_ENABLED` и `SSH_CHECK_ENABLED`. Провери
 
 ## 5a. Хуки состояния для Claude Code (необязательно)
 
-В `.claude/hooks/` лежат два готовых хука. По умолчанию **не подключены** — хук исполняет код
+В `.claude/hooks/` лежат три готовых хука. По умолчанию **не подключены** — хук исполняет код
 в каждой сессии, поэтому включается осознанно, а не приезжает из шаблона молча.
 
 - `state-freshness.sh` (SessionStart) — сверяет дату `agent_docs/snapshot.md` с последним коммитом
   в код и, если состояние устарело, говорит об этом агенту одной строкой. Только читает.
 - `handoff-nudge.sh` (Stop) — один раз за сессию, когда контекст переваливает порог, предлагает
   выполнить `/handoff`.
+- `spec-gate.sh` (PreToolUse) — перед правкой файла кода проверяет, есть ли в `agent_docs/specs/`
+  свежее ТЗ со статусом «согласовано»; если нет — просит подтверждение (`AGENTS.md`, раздел
+  «1a. Дисциплина ТЗ»). Документы и конфигурацию пропускает молча, работу не блокирует.
 
 Включить — добавить в `.claude/settings.json` проекта:
 
@@ -86,18 +89,31 @@ GitHub, включить `DEPLOY_ENABLED` и `SSH_CHECK_ENABLED`. Провери
     ],
     "Stop": [
       { "hooks": [ { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/handoff-nudge.sh", "timeout": 5 } ] }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [ { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/spec-gate.sh", "timeout": 5 } ]
+      }
     ]
   }
 }
 ```
 
-Пороги: `STARTER_SNAPSHOT_STALE_DAYS` (по умолчанию 7) и `CLAUDE_HANDOFF_NUDGE_TOKENS`
-(по умолчанию 150000). Проверить, что хуки подхватились, — командой `/hooks`. Обоснование —
+Пороги: `STARTER_SNAPSHOT_STALE_DAYS` (по умолчанию 7), `CLAUDE_HANDOFF_NUDGE_TOKENS`
+(по умолчанию 150000) и `STARTER_SPEC_GATE_DAYS` (по умолчанию 14; разовый обход —
+`STARTER_SPEC_GATE=off`). Проверить, что хуки подхватились, — командой `/hooks`. Обоснование —
 `agent_docs/guides/context-management.md`.
 
 Не нужны — удалить `.claude/hooks/`.
 
-## 6. Очистить шаблон
+## 6. Первая задача — через `/spec`
+
+Попроси у владельца черновой план и запусти скилл `/spec` — не дожидаясь команды, это порядок
+по умолчанию (`AGENTS.md`, раздел «1a. Дисциплина ТЗ»). Код в проекте не появляется раньше
+первого файла в `agent_docs/specs/` со статусом «согласовано».
+
+## 7. Очистить шаблон
 
 - Удалить этот файл (`agent_docs/setup-checklist.md`).
 - Обновить `README.md` под содержание своего проекта.
