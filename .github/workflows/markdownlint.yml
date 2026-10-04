@@ -14,14 +14,12 @@ on:
       - '.agents/**/*.md'
       - '.markdownlint.json'
       - '.github/workflows/markdownlint.yml'
-  push:
-    branches: [main, master]
-    paths:
-      - 'AGENTS.md'
-      - 'agent_docs/**/*.md'
-      - '.agents/**/*.md'
-      - '.markdownlint.json'
-      - '.github/workflows/markdownlint.yml'
+  # Без push (разбор расхода Actions, 04.10.2026): на push каждая правка документов стоила
+  # минуту, а смотреть на результат было некому — в rop, bablo и cmit-ru-next линт месяцами
+  # стоял красным незамеченным. Проверять локально перед push:
+  #   npx markdownlint-cli2 AGENTS.md 'agent_docs/**/*.md' '.agents/**/*.md'
+  # В CI — только на PR и вручную (вкладка Actions → markdownlint → Run workflow).
+  workflow_dispatch:
 
 permissions:
   contents: read

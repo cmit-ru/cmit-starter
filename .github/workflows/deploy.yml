@@ -8,6 +8,23 @@ name: Test and Deploy
 on:
   push:
     branches: [main]
+    # Коммит только из документации и служебных файлов стартера образ не меняет — не деплоить
+    # (разбор расхода Actions, 04.10.2026: каждый такой push стоил минуту-две на пересборку).
+    # Если Dockerfile проекта копирует что-то из этого списка (README.md, agent_docs/) —
+    # убрать этот путь отсюда. Сюда же дописывать свои пути, не попадающие в образ.
+    paths-ignore:
+      - '**/*.md'
+      - 'agent_docs/**'
+      - '.agents/**'
+      - '.claude/**'
+      - '.codex/**'
+      - '.cursor/**'
+      - '.cursorignore'
+      - '.editorconfig'
+      - '.markdownlint.json'
+      - '.github/workflows/markdownlint.yml'
+      - 'STARTER_VERSION'
+      - 'STARTER_MANIFEST'
 
 jobs:
   test:
@@ -16,7 +33,8 @@ jobs:
     # дефолта GitHub и жжёт общую на организацию квоту Actions (см. гайд, журнал грабель).
     timeout-minutes: 15
     # [skip ci] в сообщении коммита пропускает и тесты, и деплой (deploy зависит от test).
-    # Использовать для правок, не меняющих образ: доки, agent_docs/**.
+    # Документацию и agent_docs/** уже отсекает paths-ignore выше; [skip ci] — для прочих
+    # правок, не меняющих образ.
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - uses: actions/checkout@v7
@@ -46,6 +64,8 @@ jobs:
             --fail --silent --show-error --max-time 30
           echo "Webhook triggered"
 
+      # TODO(setup): фиксированный sleep — заглушка. Лучше опрос с ранним выходом (health-эндпоинт
+      # отдаёт новую версию / StartedAt контейнера позже вебхука) — см. гайд, «Бюджет Actions».
       - name: Wait for deployment
         if: ${{ vars.DEPLOY_ENABLED == 'true' }}
         run: sleep 60
