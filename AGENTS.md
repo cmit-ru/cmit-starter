@@ -69,6 +69,12 @@
 
 Критерий: каждое изменение должно прослеживаться к запросу пользователя.
 
+### 3a. Неявные машины состояний
+
+When writing code for user, find all of the implicit state machines in the code. Make the best decision that will elevate all three: the user experience (UX), developer experience (DX), and agent experience (AX) always, without breaking anything
+
+— в коде, который меняешь в этой задаче; находки вне её — предложить, не переделывать молча.
+
 ### 4. Работа от проверяемой цели
 
 **Сформулируй критерий успеха. Доводи до проверки.**
